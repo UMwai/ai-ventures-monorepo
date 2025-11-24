@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import { MODELS, DEFAULT_MODELS } from "./types";
+import type { ChatMessage, GenerationConfig } from "./types";
 
 let openaiInstance: OpenAI | null = null;
 
@@ -18,8 +20,12 @@ export interface ChatCompletionOptions {
   systemPrompt?: string;
   maxTokens?: number;
   temperature?: number;
+  useLatestModel?: boolean;
 }
 
+/**
+ * Chat completion using GPT-5 (default) or specified model
+ */
 export async function chatCompletion(
   prompt: string,
   options: ChatCompletionOptions = {}
@@ -27,11 +33,15 @@ export async function chatCompletion(
   const openai = getOpenAI();
 
   const {
-    model = "gpt-4-turbo-preview",
+    model = DEFAULT_MODELS.chat, // GPT-5 by default
     systemPrompt,
-    maxTokens = 1000,
+    maxTokens = 2000,
     temperature = 0.7,
+    useLatestModel = true,
   } = options;
+
+  // Use GPT-5 if useLatestModel is true
+  const selectedModel = useLatestModel ? MODELS.GPT5 : model;
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
 
@@ -42,7 +52,7 @@ export async function chatCompletion(
   messages.push({ role: "user", content: prompt });
 
   const response = await openai.chat.completions.create({
-    model,
+    model: selectedModel,
     messages,
     max_tokens: maxTokens,
     temperature,
@@ -51,6 +61,51 @@ export async function chatCompletion(
   return response.choices[0]?.message?.content || "";
 }
 
+/**
+ * Chat completion with GPT-5 specifically
+ */
+export async function gpt5Completion(
+  prompt: string,
+  options: Omit<ChatCompletionOptions, "model" | "useLatestModel"> = {}
+): Promise<string> {
+  return chatCompletion(prompt, {
+    ...options,
+    model: MODELS.GPT5,
+    useLatestModel: false,
+  });
+}
+
+/**
+ * Fast completion using GPT-5-mini
+ */
+export async function gpt5MiniCompletion(
+  prompt: string,
+  options: Omit<ChatCompletionOptions, "model" | "useLatestModel"> = {}
+): Promise<string> {
+  return chatCompletion(prompt, {
+    ...options,
+    model: MODELS.GPT5_MINI,
+    useLatestModel: false,
+  });
+}
+
+/**
+ * Reasoning-optimized completion using o3 model
+ */
+export async function o3Completion(
+  prompt: string,
+  options: Omit<ChatCompletionOptions, "model" | "useLatestModel"> = {}
+): Promise<string> {
+  return chatCompletion(prompt, {
+    ...options,
+    model: MODELS.O3,
+    useLatestModel: false,
+  });
+}
+
+/**
+ * Streaming completion using GPT-5
+ */
 export async function streamCompletion(
   prompt: string,
   options: ChatCompletionOptions = {}
@@ -58,9 +113,9 @@ export async function streamCompletion(
   const openai = getOpenAI();
 
   const {
-    model = "gpt-4-turbo-preview",
+    model = MODELS.GPT5,
     systemPrompt,
-    maxTokens = 1000,
+    maxTokens = 2000,
     temperature = 0.7,
   } = options;
 
@@ -91,3 +146,36 @@ export async function streamCompletion(
 
   return generateTokens();
 }
+
+/**
+ * Multi-turn conversation with GPT-5
+ */
+export async function conversationCompletion(
+  messages: ChatMessage[],
+  options: Omit<ChatCompletionOptions, "systemPrompt"> = {}
+): Promise<string> {
+  const openai = getOpenAI();
+
+  const {
+    model = MODELS.GPT5,
+    maxTokens = 2000,
+    temperature = 0.7,
+  } = options;
+
+  const formattedMessages = messages.map((msg) => ({
+    role: msg.role,
+    content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+  })) as OpenAI.Chat.ChatCompletionMessageParam[];
+
+  const response = await openai.chat.completions.create({
+    model,
+    messages: formattedMessages,
+    max_tokens: maxTokens,
+    temperature,
+  });
+
+  return response.choices[0]?.message?.content || "";
+}
+
+// Export model constants for convenience
+export { MODELS, DEFAULT_MODELS };

@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
-import OpenAI from "openai";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { getOpenAI, MODELS } from "@ai-ventures/ai-sdk";
 
 interface GenerationRequest {
   imageUrl?: string;
@@ -75,9 +71,10 @@ ${TONE_INSTRUCTIONS[tone as keyof typeof TONE_INSTRUCTIONS]}`;
       ? `Generate alt text for this image. Context: ${context}`
       : "Generate alt text for this image.";
 
-    // Call OpenAI Vision API
+    // Call OpenAI GPT-5 Vision API
+    const openai = getOpenAI();
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: MODELS.GPT5_VISION,
       max_tokens: 500,
       messages: [
         {
@@ -123,7 +120,7 @@ ${TONE_INSTRUCTIONS[tone as keyof typeof TONE_INSTRUCTIONS]}`;
         suggestions: getQualitySuggestions(generatedText, qualityScore),
       },
       metadata: {
-        model: "gpt-4-vision-preview",
+        model: MODELS.GPT5_VISION,
         processingTime: Date.now(),
         characterCount: generatedText.length,
       },

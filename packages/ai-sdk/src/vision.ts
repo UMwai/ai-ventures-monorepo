@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { getOpenAI } from "./openai";
+import { MODELS, DEFAULT_MODELS, type AIProvider } from "./types";
 import type { VisionAnalysisResult, VisionOptions } from "./types";
 
 export async function analyzeImage(
@@ -10,9 +11,10 @@ export async function analyzeImage(
 
   const {
     prompt = "Describe this image in detail.",
-    model = "gpt-4-vision-preview",
+    model = MODELS.GPT5_VISION, // GPT-5 Vision by default
     maxTokens = 500,
     detail = "high",
+    provider = "openai",
   } = options;
 
   // Handle different image sources
@@ -54,6 +56,7 @@ export async function analyzeImage(
   return {
     description: content,
     model,
+    provider,
     processingTime,
     usage: {
       promptTokens: response.usage?.prompt_tokens || 0,
