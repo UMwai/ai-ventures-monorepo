@@ -1,0 +1,21 @@
+{
+  "name": "@ai-ventures/auth",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^4.27.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.38",
+    "typescript": "^5.3.2"
+  }
+}
