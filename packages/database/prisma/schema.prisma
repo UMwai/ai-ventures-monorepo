@@ -29,6 +29,8 @@ model User {
   projects      Project[]
   apiKeys       ApiKey[]
   usageRecords  UsageRecord[]
+  dcfModels     DCFModel[]
+  watchlist     Watchlist[]
 
   @@map("users")
 }
@@ -157,6 +159,7 @@ enum AppType {
   ALTTEXTIFY
   BILLINGPULSE
   DATACLEANER
+  DCF_BUILDER
 }
 
 enum ProcessingStatus {
@@ -164,4 +167,100 @@ enum ProcessingStatus {
   PROCESSING
   COMPLETED
   FAILED
+}
+
+// ============================================
+// DCF BUILDER MODELS
+// ============================================
+
+model DCFModel {
+  id              String   @id @default(cuid())
+  userId          String
+  ticker          String
+  companyName     String
+  sector          String?
+  industry        String?
+
+  // Snapshot of data at time of creation
+  currentPrice    Float
+  marketCap       Float
+  beta            Float
+  sharesOutstanding Float
+
+  // Assumptions (stored as JSON for flexibility)
+  assumptions     Json     // DCFAssumptions
+  waccInputs      Json     // WACCInputs
+  terminalInputs  Json     // TerminalValueInputs
+
+  // Calculated results
+  intrinsicValue  Float?
+  impliedUpside   Float?
+  wacc            Float?
+  enterpriseValue Float?
+  equityValue     Float?
+
+  // Full result cache
+  resultCache     Json?    // Full DCFResult
+  sensitivityCache Json?   // SensitivityTable
+
+  // AI-generated content
+  aiReasoning     Json?
+  risks           String[]
+  catalysts       String[]
+  investmentThesis String?
+
+  // Scenario
+  scenario        DCFScenario @default(BASE)
+
+  // Sharing
+  isPublic        Boolean  @default(false)
+  shareCode       String?  @unique
+  shareConfig     Json?    // ShareConfig
+  viewCount       Int      @default(0)
+
+  // Metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([ticker])
+  @@index([shareCode])
+  @@map("dcf_models")
+}
+
+model FinancialDataCache {
+  id          String   @id @default(cuid())
+  ticker      String   @unique
+  data        Json     // Full CompanyData
+  fetchedAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([ticker])
+  @@index([expiresAt])
+  @@map("financial_data_cache")
+}
+
+model Watchlist {
+  id          String   @id @default(cuid())
+  userId      String
+  ticker      String
+  companyName String
+  addedAt     DateTime @default(now())
+  notes       String?
+  targetPrice Float?
+  alertEnabled Boolean @default(false)
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ticker])
+  @@index([userId])
+  @@map("watchlists")
+}
+
+enum DCFScenario {
+  BULL
+  BASE
+  BEAR
 }
